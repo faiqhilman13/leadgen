@@ -59,9 +59,22 @@ export const LeadDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setError(null);
     
     try {
+      // SECURITY: Removed sensitive environment variable logging
+      if (import.meta.env.DEV) {
+        console.log('LeadDataContext - Checking API configuration');
+        console.log('API Key configured:', !!import.meta.env.VITE_GOOGLE_SHEETS_API_KEY);
+        console.log('Spreadsheet ID configured:', !!import.meta.env.VITE_SPREADSHEET_ID);
+      }
+      
       // Check if Google Sheets API key is configured
       if (import.meta.env.VITE_GOOGLE_SHEETS_API_KEY && import.meta.env.VITE_SPREADSHEET_ID) {
+        if (import.meta.env.DEV) {
+          console.log('Fetching data from Google Sheets...');
+        }
         const sheetsData = await fetchLeadsFromGoogleSheets();
+        if (import.meta.env.DEV) {
+          console.log(`Successfully loaded ${sheetsData.length} leads from Google Sheets`);
+        }
         setLeads(sheetsData);
       } else {
         // Fall back to mock data if API key is not configured
@@ -69,7 +82,7 @@ export const LeadDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setLeads(mockLeads);
       }
     } catch (err) {
-      console.error('Error fetching lead data:', err);
+      console.error('Error fetching lead data:', err instanceof Error ? err.message : 'Unknown error');
       setError('Failed to load lead data. Please check your API key and spreadsheet settings.');
       // Fall back to mock data on error
       setLeads(mockLeads);

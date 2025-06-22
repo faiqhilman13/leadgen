@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Backend Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Backend Test</h1>
+    
+    <div>
+        <h3>1. Health Check</h3>
+        <button onclick="testHealth()">Test Health</button>
+        <div id="health-result" class="result"></div>
+    </div>
+
+    <div>
+        <h3>2. Login Test</h3>
+        <input type="email" id="email" placeholder="Email" value="admin@leadgen.com"><br>
+        <input type="password" id="password" placeholder="Password" value="admin123"><br>
+        <button onclick="testLogin()">Login</button>
+        <div id="login-result" class="result"></div>
+    </div>
+
+    <div>
+        <h3>3. Auth Status</h3>
+        <button onclick="checkAuthStatus()">Check Status</button>
+        <div id="status-result" class="result"></div>
+    </div>
+
+    <div>
+        <h3>4. Logout</h3>
+        <button onclick="testLogout()">Logout</button>
+        <div id="logout-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        let devToken = null; // Store token for file:// protocol
+
+        async function testHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                document.getElementById('health-result').innerHTML = 
+                    `<span class="success">✅ Server is running! Status: ${data.status}</span>`;
+            } catch (error) {
+                document.getElementById('health-result').innerHTML = 
+                    `<span class="error">❌ Server not responding: ${error.message}</span>`;
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    devToken = data.devToken; // Store token for subsequent requests
+                    document.getElementById('login-result').innerHTML = 
+                        `<span class="success">✅ Login successful! Welcome ${data.user.name}</span>`;
+                } else {
+                    document.getElementById('login-result').innerHTML = 
+                        `<span class="error">❌ Login failed: ${data.error}</span>`;
+                }
+            } catch (error) {
+                document.getElementById('login-result').innerHTML = 
+                    `<span class="error">❌ Login error: ${error.message}</span>`;
+            }
+        }
+
+        async function checkAuthStatus() {
+            try {
+                // Try both session and token-based auth
+                const url = devToken ? `${API_BASE}/auth/status?token=${devToken}` : `${API_BASE}/auth/status`;
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    document.getElementById('status-result').innerHTML = 
+                        `<span class="success">✅ Authenticated as ${data.user.name} (${data.user.email})</span>`;
+                } else {
+                    document.getElementById('status-result').innerHTML = 
+                        `<span class="error">❌ Not authenticated</span>`;
+                }
+            } catch (error) {
+                document.getElementById('status-result').innerHTML = 
+                    `<span class="error">❌ Status check error: ${error.message}</span>`;
+            }
+        }
+
+        async function testLogout() {
+            try {
+                const response = await fetch(`${API_BASE}/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    devToken = null; // Clear token on logout
+                    document.getElementById('logout-result').innerHTML = 
+                        `<span class="success">✅ Logged out successfully</span>`;
+                } else {
+                    document.getElementById('logout-result').innerHTML = 
+                        `<span class="error">❌ Logout failed: ${data.error}</span>`;
+                }
+            } catch (error) {
+                document.getElementById('logout-result').innerHTML = 
+                    `<span class="error">❌ Logout error: ${error.message}</span>`;
+            }
+        }
+
+        // Test health on page load
+        window.onload = () => testHealth();
+    </script>
+</body>
+</html> 

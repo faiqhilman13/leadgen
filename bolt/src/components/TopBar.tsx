@@ -1,9 +1,11 @@
 import React from 'react';
-import { Search, Bell, Sun, Moon, User } from 'lucide-react';
+import { Search, Bell, Sun, Moon, User, LogOut } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const TopBar: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   return (
     <div className={`
@@ -69,12 +71,27 @@ export const TopBar: React.FC = () => {
           </div>
           <div className="hidden sm:block">
             <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              John Doe
+              {user?.name || 'User'}
             </p>
             <p className={`text-xs ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
               Admin
             </p>
           </div>
+          
+          {/* Logout Button */}
+          <button
+            onClick={logout}
+            className={`
+              p-2 rounded-lg transition-colors duration-200
+              ${isDark 
+                ? 'text-white/60 hover:text-white hover:bg-white/10' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+              }
+            `}
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>

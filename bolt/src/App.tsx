@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Users, Mail, Clock, TrendingUp, Target } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LeadDataProvider, useLeadData } from './contexts/LeadDataContext';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -9,8 +10,10 @@ import { ChartCard } from './components/ChartCard';
 import { ConversionFunnel } from './components/ConversionFunnel';
 import { WeeklyChart } from './components/WeeklyChart';
 import { ModernLeadTable } from './components/ModernLeadTable';
+import { LoginForm } from './components/LoginForm';
 import { StagewiseToolbar } from '@stagewise/toolbar-react';
 import { ReactPlugin } from '@stagewise-plugins/react';
+import Particles from './components/Particles';
 
 const DashboardSection = React.memo(() => {
   const { leads, stats, loading, error } = useLeadData();
@@ -46,7 +49,7 @@ const DashboardSection = React.memo(() => {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black dark:text-white mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text dark:text-transparent">
+        <h1 className="text-3xl font-bold text-black dark:text-white mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:bg-clip-initial dark:text-white">
           Lead Analytics
         </h1>
         <p className="text-gray-600 dark:text-white/60">
@@ -193,6 +196,7 @@ const PlaceholderSection = React.memo(({ section }: { section: string }) => (
 ));
 
 function AppContent() {
+  const { isAuthenticated, loading } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
 
   const renderActiveSection = useCallback(() => {
@@ -208,16 +212,49 @@ function AppContent() {
     }
   }, [activeSection]);
 
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-yellow-100 to-pink-100 dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-white/60">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
+  // Show main dashboard if authenticated
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-yellow-100 to-pink-100 dark:from-black dark:via-slate-950 dark:to-black">
-      <div className="flex h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-yellow-100 to-pink-100 dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-900 dark:to-slate-800 relative">
+      {/* Particles Background */}
+      <Particles
+        particleColors={['#ffffff', '#ffffff']}
+        particleCount={1000}
+        particleSpread={30}
+        speed={1.2}
+        particleBaseSize={100}
+        moveParticlesOnHover={false}
+        alphaParticles={false}
+        disableRotation={true}
+        className="fixed inset-0 z-0"
+      />
+      
+      <div className="flex h-screen relative z-10">
         <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
         
         <div className="flex-1 ml-64">
           <TopBar />
           
-          <main className="p-6 overflow-y-auto h-[calc(100vh-4rem)]">
-            {renderActiveSection()}
+          <main className="p-6 overflow-y-auto h-[calc(100vh-4rem)] max-w-full">
+            <div className="max-w-7xl mx-auto">
+              {renderActiveSection()}
+            </div>
           </main>
         </div>
       </div>
@@ -229,27 +266,31 @@ const App = React.memo(() => {
   // Force enable Stagewise toolbar in development mode
   const isStagewiseEnabled = import.meta.env.DEV;
   
-  // Add debugging logs
+  // SECURITY: Only log environment variables in development
   React.useEffect(() => {
-    console.log('App.tsx - Environment variables:', {
-      isDev: import.meta.env.DEV,
-      stagewiseEnabled: import.meta.env.VITE_STAGEWISE_ENABLED,
-      isStagewiseEnabled
-    });
+    if (import.meta.env.DEV) {
+      console.log('App.tsx - Environment variables:', {
+        isDev: import.meta.env.DEV,
+        stagewiseEnabled: import.meta.env.VITE_STAGEWISE_ENABLED,
+        isStagewiseEnabled
+      });
+    }
   }, [isStagewiseEnabled]);
   
   return (
     <ThemeProvider>
-      <LeadDataProvider>
-        <AppContent />
-        {isStagewiseEnabled && (
-          <StagewiseToolbar 
-            config={{
-              plugins: [ReactPlugin]
-            }}
-          />
-        )}
-      </LeadDataProvider>
+      <AuthProvider>
+        <LeadDataProvider>
+          <AppContent />
+          {isStagewiseEnabled && (
+            <StagewiseToolbar 
+              config={{
+                plugins: [ReactPlugin]
+              }}
+            />
+          )}
+        </LeadDataProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 });
